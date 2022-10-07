@@ -222,7 +222,6 @@ class Summation(TensorOp):
         # END YOUR SOLUTION
 
     def gradient(self, out_grad, node):
-
         if self.axes is None:
             return out_grad.broadcast_to(node.inputs[0].shape)
 
