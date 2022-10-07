@@ -56,9 +56,11 @@ class MulScalar(TensorOp):
     def __init__(self, scalar):
         self.scalar = scalar
 
+    # compute is forward pass, return true value
     def compute(self, a: NDArray):
         return a * self.scalar
 
+    # gradient is backward pass, return Tensor, can be used for higher level diff
     def gradient(self, out_grad: Tensor, node: Tensor):
         return (out_grad * self.scalar,)
 
@@ -80,7 +82,7 @@ class PowerScalar(TensorOp):
 
     def gradient(self, out_grad, node):
         # BEGIN YOUR SOLUTION
-        raise NotImplementedError()
+        return (node.inputs[0]**Tensor(self.scalar-1)) * out_grad*Tensor(self.scalar)
         # END YOUR SOLUTION
 
 
@@ -220,14 +222,16 @@ class Summation(TensorOp):
         # END YOUR SOLUTION
 
     def gradient(self, out_grad, node):
-        
         if self.axes is None:
             return out_grad.broadcast_to(node.inputs[0].shape)
 
         new_shape = list(node.inputs[0].shape)
         if self.axes is not None:
-            for i in self.axes:
-                new_shape[i] = 1
+            if type(self.axes) is not tuple:
+                new_shape[self.axes] = 1
+            else:
+                for i in self.axes:
+                    new_shape[i] = 1
         grad = out_grad.reshape(new_shape).broadcast_to(node.inputs[0].shape)
         # BEGIN YOUR SOLUTION
         return grad
@@ -301,7 +305,7 @@ class Log(TensorOp):
 
     def gradient(self, out_grad, node):
         # BEGIN YOUR SOLUTION
-        raise NotImplementedError()
+        return out_grad*Tensor(1)/node.inputs[0]
         # END YOUR SOLUTION
 
 
@@ -317,7 +321,7 @@ class Exp(TensorOp):
 
     def gradient(self, out_grad, node):
         # BEGIN YOUR SOLUTION
-        raise NotImplementedError()
+        return out_grad * Tensor(array_api.exp(node.inputs[0].realize_cached_data()))
         # END YOUR SOLUTION
 
 
@@ -329,13 +333,18 @@ def exp(a):
 class ReLU(TensorOp):
     def compute(self, a):
         # BEGIN YOUR SOLUTION
-        return array_api.relu(a)
+        # maybe use view or something like that, copy is too expensive
+        data = array_api.array(a, copy=True)
+        data[data < 0] = 0
+        return data
         # END YOUR SOLUTION
 
     def gradient(self, out_grad, node):
         # BEGIN YOUR SOLUTION
-        raise NotImplementedError()
-        # END YOUR SOLUTION
+        data = node.inputs[0].realize_cached_data()
+        data[data < 0] = 0
+        data[data > 0] = 1
+        return out_grad*Tensor(data)
 
 
 def relu(a):
