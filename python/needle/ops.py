@@ -191,16 +191,16 @@ class BroadcastTo(TensorOp):
         broadcast_shape = self.shape
         input_shape = node.inputs[0].shape
 
-        broad_axes = []
-        broad_values = []
-        for i, v in enumerate(broadcast_shape):
-            if i < len(input_shape):
-                if input_shape[i] != broadcast_shape[i]:
-                    broad_axes.append(i)
-                    broad_values.append(broadcast_shape[i]/input_shape[i])
-            else:
-                broad_axes.append(i)
-                broad_values.append(v)
+        broad_axes = [i for i in range(len(broadcast_shape))]
+        visited = [False]*len(broadcast_shape)
+
+        for i in input_shape:
+            for j, v in enumerate(broadcast_shape):
+                if v == i and not visited[j]:
+                    visited[j] = True
+                    broad_axes.remove(j)
+                    break
+
         grad = out_grad.sum(tuple(broad_axes)).reshape(input_shape)
 
         return grad
